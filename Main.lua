@@ -1,6 +1,4 @@
--- HUB SOMBRA v4.0 | by Equipe Sombra
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
-
 local Window = Rayfield:CreateWindow({
    Name = "Sombra Hub | Blox Fruits",
    LoadingTitle = "Sombra Hub",
@@ -17,11 +15,10 @@ local Window = Rayfield:CreateWindow({
       Key = {"SOMBRA_V4_FREE"}
    }
 })
-
 local MainTab = Window:CreateTab("Main", 4483362458)
-MainTab:CreateLabel("Status: ONLINE | v4.0")
-
+MainTab:CreateLabel("Sombra Hub v4.0 - ONLINE")
 MainTab:CreateButton({
    Name = "Copy Discord",
    Callback = function() setclipboard("discord.gg/sombrahub") end,
 })
+Rayfield:Notify({Title = "Sombra Hub", Content = "Loaded!", Duration = 3})
