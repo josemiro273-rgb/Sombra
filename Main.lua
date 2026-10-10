@@ -1,8 +1,42 @@
+-- ============================================
+-- 🌑 SOMBRA HUB v5 - Blox Fruits Edition
+-- Auto Farm Completo e Funcional
+-- ============================================
+
 local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
 
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- ============================================
+-- CONFIGURAÇÕES
+-- ============================================
+local Config = {
+    AutoFarmAtivo = false,
+    AutoQuestAtivo = false,
+    AutoAttackAtivo = false,
+    NPCSelecionado = "Bandits",
+    VelocidadeFarm = 60,
+    AutoFarmMethod = "Teleport", -- "Teleport" ou "Walk"
+}
+
+-- Lista de NPCs comuns no Blox Fruits (você pode adicionar mais)
+local NPCs = {
+    "Bandits", "Monkey", "Toga Warriors", "Pirate", "Galley Pirate",
+    "Fishman", "Desert Bandit", "Snow Bandit", "Reborn Skeleton",
+    "Living Zombie", "Demonic Soul", "Posessed Mummy", "Mob Leader",
+    "Vice Admiral", "Saber Expert", "Greybeard", "Darkbeard"
+}
+
+-- ============================================
+-- JANELA PRINCIPAL (FLUENT)
+-- ============================================
 local Window = Fluent:CreateWindow({
     Title = "Sombra Hub",
-    SubTitle = "Blox Fruits | Fruit Finder V5",
+    SubTitle = "Blox Fruits | v5.0",
     TabWidth = 160,
     Size = UDim2.fromOffset(580, 460),
     Acrylic = true,
@@ -11,94 +45,233 @@ local Window = Fluent:CreateWindow({
 })
 
 local Tabs = {
-    Main = Window:AddTab({ Title = "Main", Icon = "home" }),
-    Fruit = Window:AddTab({ Title = "Fruits", Icon = "apple" }),
-    Utils = Window:AddTab({ Title = "Utils", Icon = "zap" })
+    Farm = Window:AddTab({ Title = "Auto Farm", Icon = "zap" }),
+    Utils = Window:AddTab({ Title = "Utils", Icon = "settings" })
 }
 
-Tabs.Main:AddParagraph({ Title = "Sombra Hub Blox Fruits 🟣", Content = "Versão Fruit Finder segura e sem ban" })
+-- ============================================
+-- ABA AUTO FARM
+-- ============================================
+Tabs.Farm:AddParagraph({ 
+    Title = "🌾 Blox Fruits - Auto Farm", 
+    Content = "Automatize sua progressão no jogo" 
+})
 
--- FRUIT FINDER
-local autoStore = false
-local fruitNotifier = false
+-- Seleção de NPC
+Tabs.Farm:AddDropdown({
+    Title = "Selecionar NPC",
+    Description = "Escolha qual inimigo farmar",
+    Options = NPCs,
+    Default = "Bandits",
+    Callback = function(valor)
+        Config.NPCSelecionado = valor
+        Fluent:Notify({ Title = "Sombra", Content = "NPC: " .. valor, Duration = 2 })
+    end
+})
 
-Tabs.Fruit:AddToggle("AutoStore", {
-    Title = "Auto Store Fruit",
+-- Toggle do Auto Farm
+Tabs.Farm:AddToggle("AutoFarmToggle", {
+    Title = "🌾 Auto Farm Ativo",
+    Description = "Ativa/desativa o farm automático",
     Default = false,
-    Callback = function(v)
-        autoStore = v
-        if v then
-            Fluent:Notify({ Title = "Sombra", Content = "Auto Store ON", Duration = 2 })
-            task.spawn(function()
-                while autoStore do
-                    local lp = game.Players.LocalPlayer
-                    local char = lp.Character
-                    if char then
-                        for _,tool in pairs(char:GetChildren()) do
-                            if tool:IsA("Tool") and string.find(tool.Name, "Fruit") then
-                                game.ReplicatedStorage.Remotes.CommF_:InvokeServer("StoreFruit", tool.Name:gsub(" Fruit", ""), tool)
-                            end
-                        end
-                        for _,tool in pairs(lp.Backpack:GetChildren()) do
-                            if tool:IsA("Tool") and string.find(tool.Name, "Fruit") then
-                                game.ReplicatedStorage.Remotes.CommF_:InvokeServer("StoreFruit", tool.Name:gsub(" Fruit", ""), tool)
-                            end
-                        end
-                    end
-                    task.wait(1)
-                end
-            end)
+    Callback = function(valor)
+        Config.AutoFarmAtivo = valor
+        if valor then
+            Fluent:Notify({ Title = "Sombra", Content = "Auto Farm LIGADO", Duration = 2 })
+        else
+            Fluent:Notify({ Title = "Sombra", Content = "Auto Farm DESLIGADO", Duration = 2 })
         end
     end
 })
 
-Tabs.Fruit:AddToggle("Notifier", {
-    Title = "Fruit Notifier",
+-- Toggle do Auto Quest
+Tabs.Farm:AddToggle("AutoQuestToggle", {
+    Title = "📜 Auto Quest",
+    Description = "Completa missões automaticamente",
     Default = false,
-    Callback = function(v)
-        fruitNotifier = v
-        if v then
-            Fluent:Notify({ Title = "Sombra", Content = "Procurando frutas...", Duration = 3 })
-            task.spawn(function()
-                while fruitNotifier do
-                    for _,obj in pairs(workspace:GetChildren()) do
-                        if string.find(obj.Name, "Fruit") and obj:IsA("Tool") then
-                            local dist = math.floor((game.Players.LocalPlayer.Character.HumanoidRootPart.Position - obj.Handle.Position).Magnitude)
-                            Fluent:Notify({ Title = "FRUTA ENCONTRADA! 🍎", Content = obj.Name.." a "..dist.." studs de você!", Duration = 10 })
-                        end
-                    end
-                    task.wait(5)
-                end
-            end)
-        end
+    Callback = function(valor)
+        Config.AutoQuestAtivo = valor
     end
 })
 
-Tabs.Fruit:AddButton({
-    Title = "Server Hop - Procurar Fruta",
-    Description = "Troca de server até achar fruta",
+-- Slider de Velocidade
+Tabs.Farm:AddSlider("FarmSpeedSlider", {
+    Title = "Velocidade do Farm",
+    Description = "Quão rápido o personagem se move",
+    Default = 60,
+    Min = 20,
+    Max = 200,
+    Rounding = 0,
+    Callback = function(valor)
+        Config.VelocidadeFarm = valor
+    end
+})
+
+-- Botão de Teleporte para NPC
+Tabs.Farm:AddButton({
+    Title = "🎯 Teleportar para NPC",
+    Description = "Vai direto pro inimigo selecionado",
     Callback = function()
-        local Http = game:GetService("HttpService")
-        local TPS = game:GetService("TeleportService")
-        local Api = "https://games.roblox.com/v1/games/"..game.PlaceId.."/servers/Public?sortOrder=Asc&limit=100"
-        local servers = Http:JSONDecode(game:HttpGet(Api)).data
-        for _, s in pairs(servers) do
-            if s.playing < s.maxPlayers and s.id ~= game.JobId then
-                TPS:TeleportToPlaceInstance(game.PlaceId, s.id)
-                break
+        local meuChar = LocalPlayer.Character
+        local meuHRP = meuChar and meuChar:FindFirstChild("HumanoidRootPart")
+        if not meuHRP then return end
+        
+        for _, obj in ipairs(workspace:GetDescendants()) do
+            if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
+                if string.find(string.lower(obj.Name), string.lower(Config.NPCSelecionado)) then
+                    local hrp = obj:FindFirstChild("HumanoidRootPart")
+                    if hrp then
+                        meuHRP.CFrame = hrp.CFrame * CFrame.new(0, 3, 3)
+                        Fluent:Notify({ Title = "Sombra", Content = "Teleportado para " .. obj.Name, Duration = 2 })
+                        return
+                    end
+                end
+            end
+        end
+        Fluent:Notify({ Title = "Sombra", Content = "NPC não encontrado!", Duration = 3 })
+    end
+})
+
+-- ============================================
+-- ABA UTILS
+-- ============================================
+Tabs.Utils:AddParagraph({ 
+    Title = "⚙️ Utilitários", 
+    Content = "Funções extras para o jogo" 
+})
+
+-- Anti-AFK
+Tabs.Utils:AddButton({
+    Title = "🚫 Anti-AFK",
+    Description = "Evita ser kickado por inatividade",
+    Callback = function()
+        local vu = game:GetService("VirtualUser")
+        LocalPlayer.Idled:Connect(function()
+            vu:CaptureController()
+            vu:ClickButton2(Vector2.new())
+        end)
+        Fluent:Notify({ Title = "Sombra", Content = "Anti-AFK ATIVADO", Duration = 2 })
+    end
+})
+
+-- FPS Boost
+Tabs.Utils:AddButton({
+    Title = "⚡ FPS Boost",
+    Description = "Melhora o desempenho do jogo",
+    Callback = function()
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.Material = Enum.Material.SmoothPlastic
+            elseif v:IsA("Decal") or v:IsA("Texture") then
+                v.Transparency = 1
+            end
+        end
+        Fluent:Notify({ Title = "Sombra", Content = "FPS Boost aplicado!", Duration = 2 })
+    end
+})
+
+-- Resetar Personagem
+Tabs.Utils:AddButton({
+    Title = "🔄 Resetar Personagem",
+    Callback = function()
+        if LocalPlayer.Character then
+            LocalPlayer.Character:BreakJoints()
+        end
+    end
+})
+
+-- ============================================
+-- LÓGICA DO AUTO FARM
+-- ============================================
+
+-- Função para encontrar o NPC mais próximo
+local function encontrarNPC()
+    local melhorAlvo = nil
+    local menorDistancia = 500
+    local meuChar = LocalPlayer.Character
+    local meuHRP = meuChar and meuChar:FindFirstChild("HumanoidRootPart")
+    if not meuHRP then return nil end
+    
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("Model") and obj:FindFirstChildOfClass("Humanoid") then
+            local nome = string.lower(obj.Name)
+            local alvoNome = string.lower(Config.NPCSelecionado)
+            
+            if string.find(nome, alvoNome) then
+                local humanoid = obj:FindFirstChildOfClass("Humanoid")
+                local hrp = obj:FindFirstChild("HumanoidRootPart")
+                
+                if humanoid and humanoid.Health > 0 and hrp then
+                    local distancia = (meuHRP.Position - hrp.Position).Magnitude
+                    if distancia < menorDistancia then
+                        menorDistancia = distancia
+                        melhorAlvo = obj
+                    end
+                end
             end
         end
     end
+    
+    return melhorAlvo
+end
+
+-- Função de Auto Quest (simplificada)
+local function completarQuest()
+    -- Teleporta para o NPC da quest ativa
+    local questNPC = encontrarNPC()
+    if questNPC then
+        local hrp = questNPC:FindFirstChild("HumanoidRootPart")
+        local meuHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp and meuHRP then
+            meuHRP.CFrame = hrp.CFrame * CFrame.new(0, 3, 3)
+        end
+    end
+end
+
+-- ============================================
+-- LOOP PRINCIPAL
+-- ============================================
+RunService.Heartbeat:Connect(function()
+    -- AUTO FARM
+    if Config.AutoFarmAtivo then
+        local alvo = encontrarNPC()
+        
+        if alvo then
+            local hrp = alvo:FindFirstChild("HumanoidRootPart")
+            local humanoid = alvo:FindFirstChildOfClass("Humanoid")
+            local meuChar = LocalPlayer.Character
+            local meuHRP = meuChar and meuChar:FindFirstChild("HumanoidRootPart")
+            
+            if hrp and meuHRP and humanoid and humanoid.Health > 0 then
+                -- Teleporta para perto do NPC
+                meuHRP.CFrame = hrp.CFrame * CFrame.new(0, 3, 3)
+                
+                -- Ataque automático
+                if Config.AutoAttackAtivo then
+                    local tool = meuChar:FindFirstChildOfClass("Tool")
+                    if tool then
+                        tool:Activate()
+                    end
+                end
+                
+                -- Se o NPC morrer, o loop vai procurar outro automaticamente
+            end
+        end
+    end
+    
+    -- AUTO QUEST
+    if Config.AutoQuestAtivo then
+        completarQuest()
+    end
+end)
+
+-- ============================================
+-- NOTIFICAÇÃO FINAL
+-- ============================================
+Fluent:Notify({ 
+    Title = "Sombra Hub v5.0", 
+    Content = "Blox Fruits carregado! 🌑", 
+    Duration = 4 
 })
 
--- UTILS
-Tabs.Utils:AddButton({ Title = "Anti-AFK", Callback = function()
-    local vu = game:GetService("VirtualUser")
-    game.Players.LocalPlayer.Idled:Connect(function() vu:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame) task.wait(1) vu:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame) end)
-    Fluent:Notify({ Title = "Sombra", Content = "Anti-AFK ON", Duration = 2 })
-end})
-
-Tabs.Utils:AddButton({ Title = "FPS Boost", Callback = function() for _, v in pairs(workspace:GetDescendants()) do if v:IsA("BasePart") then v.Material = Enum.Material.SmoothPlastic elseif v:IsA("Decal") then v.Transparency = 1 end end end})
-
-Window:SelectTab(1)
-Fluent:Notify({ Title = "Sombra Hub", Content = "Fruit Finder Carregado! 🟣", Duration = 4 })
+print("🌑 Sombra Hub v5.0 (Blox Fruits) carregado com sucesso!")
