@@ -1,4 +1,3 @@
-
 -- HUB SOMBRA v4.0 | by Equipe Sombra
 -- Link corrigido e direto do repositório oficial do Rayfield
 local Rayfield = loadstring(game:HttpGetAsync("https://githubusercontent.com"))()
@@ -63,7 +62,8 @@ local function EquiparArma()
     
     if Character and not Character:FindFirstChildOfClass("Tool") then
         for _, tool in pairs(Backpack:GetChildren()) do
-            if tool:IsA("Tool") and tool.ToolTip == _G.ArmaParaUsar then
+            -- Alinhado com o ToolTip que o Blox Fruits usa para Melee/Sword/Fruit
+            if tool:IsA("Tool") and (tool.ToolTip == _G.ArmaParaUsar or tool.Name == _G.ArmaParaUsar) then
                 Character.Humanoid:EquipTool(tool)
                 break
             end
@@ -71,8 +71,13 @@ local function EquiparArma()
     end
 end
 
--- Tabela de Quests automática por Level
+-- Tabela de Quests automática por Level (Bandit e Jungle)
 local function PegarInformacoesQuest()
+    -- Verificação de segurança para evitar erros caso os dados do player demorem a carregar
+    if not LocalPlayer:FindFirstChild("Data") or not LocalPlayer.Data:FindFirstChild("Level") then 
+        return { MyLevel = 1 } 
+    end
+    
     local MyLevel = LocalPlayer.Data.Level.Value
     
     -- Inicial (Bandits)
@@ -86,6 +91,15 @@ local function PegarInformacoesQuest()
         }
     -- Selva (Monkeys)
     elseif MyLevel >= 10 and MyLevel < 15 then
+        return {
+            NPC_Pos = CFrame.new(-1598, 37, 153),
+            QuestName = "JungleQuest",
+            QuestNumber = 1,
+            MobName = "Monkey",
+            Mob_Pos = CFrame.new(-1610, 40, 200)
+        }
+    else
+        -- Fallback caso o nível seja maior que 15 (evita que o script pare de funcionar repentinamente)
         return {
             NPC_Pos = CFrame.new(-1598, 37, 153),
             QuestName = "JungleQuest",
@@ -116,7 +130,7 @@ MainTab:CreateLabel("Status: ONLINE | v4.0")
 MainTab:CreateButton({
    Name = "Copy Discord",
    Callback = function() setclipboard("discord.gg/sombrahub") end,
- })
+})
 
 -- Nova Aba de Automações (Auto Farm)
 local FarmTab = Window:CreateTab("Auto Farm", 4483362458)
@@ -137,14 +151,19 @@ FarmTab:CreateToggle({
                       local Data = PegarInformacoesQuest()
                       if not Data then continue end
                       
+                      -- Verifica se o jogador já está com uma Quest ativa na tela
                       local HasQuest = LocalPlayer.PlayerGui.Main:FindFirstChild("Quest") and LocalPlayer.PlayerGui.Main.Quest.Visible
                       
                       if not HasQuest then
+                          -- Se não tem quest, voa suavemente até o NPC
                           ToPos(Data.NPC_Pos, 300)
-                          if (LocalPlayer.Character.HumanoidRootPart.Position - Data.NPC_Pos.Position).Magnitude < 10 then
+                          if (LocalPlayer.Character.HumanoidRootPart.Position - Data.NPC_Pos.Position).Magnitude < 15 then
+                              task.wait(0.2)
+                              -- Dispara o evento oficial do jogo para aceitar a missão
                               game:GetService("ReplicatedStorage").Remotes.CommF_:InvokeServer("StartQuest", Data.QuestName, Data.QuestNumber)
                           end
                       else
+                          -- Se já tem a quest, procura pelo monstro no mapa
                           local Alvo = nil
                           for _, v in pairs(game:GetService("Workspace").Enemies:GetChildren()) do
                               if v.Name == Data.MobName and v:FindFirstChild("Humanoid") and v.Humanoid.Health > 0 then
@@ -154,13 +173,16 @@ FarmTab:CreateToggle({
                           end
                           
                           if Alvo and Alvo:FindFirstChild("HumanoidRootPart") then
+                              -- Posiciona o seu boneco 5 blocos acima do monstro (para evitar levar dano)
                               ToPos(Alvo.HumanoidRootPart.CFrame * CFrame.new(0, 5, 0), 300)
-                              EquiparArma()
                               
+                              -- Equipa o estilo de luta e bate
+                              EquiparArma()
                               local VirtualUser = game:GetService("VirtualUser")
                               VirtualUser:CaptureController()
                               VirtualUser:ClickButton1(Vector2.new(850, 520))
                           else
+                              -- Se os monstros ainda não renasceram, vai até o local de spawn deles
                               ToPos(Data.Mob_Pos, 300)
                           end
                       end
@@ -170,3 +192,4 @@ FarmTab:CreateToggle({
       end
    end,
 })
+
