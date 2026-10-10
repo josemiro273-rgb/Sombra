@@ -1,5 +1,6 @@
+
 -- HUB SOMBRA v4.0 | by Equipe Sombra
--- Usando link alternativo direto do GitHub para não travar em executores mobile
+-- Link corrigido e direto do repositório oficial do Rayfield
 local Rayfield = loadstring(game:HttpGetAsync("https://githubusercontent.com"))()
 
 -- Inicialização da Janela Principal
@@ -169,4 +170,3 @@ FarmTab:CreateToggle({
       end
    end,
 })
-
