@@ -1,7 +1,14 @@
-
 -- HUB SOMBRA v4.0 | by Equipe Sombra
--- Link corrigido e direto do repositório oficial do Rayfield
-local Rayfield = loadstring(game:HttpGetAsync("https://githubusercontent.com"))()
+-- Versao com carregamento seguro para executores mobile
+local Rayfield
+local sucesso_lib, erro_lib = pcall(function()
+    return loadstring(game:HttpGet("https://githubusercontent.com"))()
+end)
+
+if not sucesso_lib or not Rayfield then
+    -- Link alternativo caso o principal caia ou trave no celular
+    Rayfield = loadstring(game:HttpGet("https://sirius.menu"))()
+end
 
 -- Inicialização da Janela Principal
 local Window = Rayfield:CreateWindow({
